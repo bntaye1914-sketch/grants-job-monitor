@@ -32,7 +32,10 @@ def scan_usajobs():
     search_terms = [
         'grants management',
         'grants consultant',
-        'capital grants'
+        'capital grants',
+    'capital program manager',
+    'federal grants specialist',
+    'grant compliance'
     ]
     
     all_results = []
