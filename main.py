@@ -8,7 +8,7 @@ import json
 import os
 from datetime import datetime
 from scan_usajobs import scan_usajobs
-from scan_indeed import scan_indeed
+# from scan_indeed import scan_indeed
 from scan_linkedin import scan_linkedin
 from notify import send_email_notification, send_discord_notification
 
@@ -63,13 +63,13 @@ def main():
     except Exception as e:
         print(f"   ❌ USAJobs error: {e}")
     
-    print("\n🔎 Scanning Indeed...")
-    try:
-        indeed_results = scan_indeed()
-        all_jobs.extend(indeed_results)
-        print(f"   Found: {len(indeed_results)} jobs")
-    except Exception as e:
-        print(f"   ❌ Indeed error: {e}")
+#     print("\n🔎 Scanning Indeed...")
+#     try:
+#         indeed_results = scan_indeed()
+#         all_jobs.extend(indeed_results)
+#         print(f"   Found: {len(indeed_results)} jobs")
+#     except Exception as e:
+#         print(f"   ❌ Indeed error: {e}")
     
     print("\n💼 Scanning LinkedIn...")
     try:
