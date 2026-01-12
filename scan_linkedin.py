@@ -20,11 +20,14 @@ def scan_linkedin():
     queries = [
         'grants management',
         'grants consultant',
-        'capital grants'
+        'capital grants',
+    'capital program manager',
+    'federal grants specialist',
+    'grant compliance'
     ]
     
     locations = [
-        'Maryland, United States',
+        'District of Columbia, United States',
         'United States'  # Remote
     ]
     
