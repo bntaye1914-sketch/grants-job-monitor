@@ -16,14 +16,18 @@ def scan_indeed():
     Returns list of job dictionaries
     """
     
-    queries = [
+    19
+    = [
         'grants management',
         'grants consultant',
-        'capital grants manager'
+        'capital grants manager',
+    'capital program manager',
+    'federal grants specialist',
+    'grant compliance'
     ]
     
     locations = [
-        'Maryland',
+        'Washington DC',
         'Remote'
     ]
     
