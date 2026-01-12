@@ -16,8 +16,7 @@ def scan_indeed():
     Returns list of job dictionaries
     """
     
-    19
-    = [
+        queries = [ 
         'grants management',
         'grants consultant',
         'capital grants manager',
