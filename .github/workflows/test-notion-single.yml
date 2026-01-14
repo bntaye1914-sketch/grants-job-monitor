@@ -39,8 +39,7 @@ jobs:
                   'Status': {'status': {'name': 'Monitoring'}},
                   'Type': {'select': {'name': 'Federal General'}},
                   'Date Added': {'date': {'start': datetime.now().strftime('%Y-%m-%d')}},
-                  ''URL': {'url': 'https://test.com'},
-                  'Job Hash': {'rich_text': [{'text': {'content': 'testhash123'}}]},
+                        'URL': {'url': 'https://test.com'},                  'Job Hash': {'rich_text': [{'text': {'content': 'testhash123'}}]},
                   'Notes': {'rich_text': [{'text': {'content': 'Test'}}]}
               }
           }
