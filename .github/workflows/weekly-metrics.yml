@@ -1,0 +1,42 @@
+name: Weekly Job Search Metrics
+
+on:
+  schedule:
+    - cron: "0 14 * * 0"  # Sunday 9am EST = 14:00 UTC
+  workflow_dispatch: {}   # Manual trigger
+
+jobs:
+  generate-metrics:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests
+      
+      - name: Generate metrics report
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
+        run: python notion_metrics.py
+      
+      - name: Upload metrics report
+        uses: actions/upload-artifact@v4
+        with:
+          name: job-search-metrics
+          path: job_search_metrics.md
+          retention-days: 90
+      
+      - name: Post summary to Actions
+        run: |
+          echo "## 📊 Job Search Metrics Summary" >> $GITHUB_STEP_SUMMARY
+          cat job_search_metrics.md >> $GITHUB_STEP_SUMMARY
