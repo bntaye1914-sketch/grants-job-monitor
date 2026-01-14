@@ -32,19 +32,25 @@ jobs:
           GMAIL_USER: ${{ secrets.GMAIL_USER }}
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
           NOTIFY_EMAIL: ${{ secrets.NOTIFY_EMAIL }}
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-        run: |
-          python main.py
+      env:
+        DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+      run: |
+        python main.py
 
-      - name: Upload job archive
-            - name: Push to Notion
-        env:
-          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
-          NOTION_DB_ID: ${{ secrets.NOTION_DB_ID }}
-        run: |
-          python scripts/push_to_notion.py
-        if: always()
-        uses: actions/upload-artifact@v4
+    - name: Push to Notion
+      env:
+        NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+        NOTION_DB_ID: ${{ secrets.NOTION_DB_ID }}
+      run: |
+        python scripts/push_to_notion.py
+
+    - name: Upload job archive
+      if: always()
+      uses: actions/upload-artifact@v4        uses: actions/upload-artifact@v4
+            with:
+        name: job-scan-results-${{ github.run_number }}
+        path: data/
+        retention-days: 30
         with:
           name: job-scan-results-${{ github.run_number }}
           path: data/
