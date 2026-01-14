@@ -1,0 +1,50 @@
+name: Job Search → Notion Sync
+
+on:
+  schedule:
+    - cron: "0 11 * * 1,4"  # 6am EST Mon/Thu = 11:00 UTC
+  workflow_dispatch: {}      # manual trigger
+
+jobs:
+  sync-opportunities:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests
+
+      - name: Run job scraper
+        id: scraper
+        run: |
+          python job_scraper.py
+          # Output count for next step
+          COUNT=$(python - << 'PY'
+import json, os
+try:
+    with open("job_results.json", "r", encoding="utf-8") as f:
+        data = json.load(f)
+    if isinstance(data, dict):
+        data = data.get("results", [])
+    print(len(data) if isinstance(data, list) else 0)
+except Exception:
+    print(0)
+PY
+          )
+          echo "job_count=$COUNT" >> "$GITHUB_OUTPUT"
+
+      - name: Sync to Notion
+        if: steps.scraper.outputs.job_count != '0'
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
+        run: python notion_sync.py
