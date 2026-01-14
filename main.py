@@ -120,7 +120,7 @@ def main():
                             json.dump(new_jobs, f, indent=2)
         
     else:
-        print("✓ No new jobs this scan (all previously seen)")
+                print("✓ No new jobs this scan (all previously seen)")
     
     print("\n" + "=" * 60)
     print("✅ Scan complete")
