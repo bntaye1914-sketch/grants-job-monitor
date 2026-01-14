@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """
 Job Monitor → Notion Integration
-Auto-populates Opportunity Intelligence database with deduplication.
 """
 
 import os
@@ -10,9 +9,8 @@ import json
 import hashlib
 import requests
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict
 
-# Configuration
 NOTION_TOKEN = os.getenv("NOTION_TOKEN")
 NOTION_DB_ID = os.getenv("NOTION_DB_ID")
 HEADERS = {
@@ -21,69 +19,46 @@ HEADERS = {
     "Notion-Version": "2022-06-28"
 }
 
-# Target agencies for high-priority scoring
 TARGET_AGENCIES = [
     "dod", "defense", "army", "navy", "air force",
-    "va", "veterans affairs",
-    "gsa", "general services",
-    "dhs", "homeland security",
-    "hhs", "health and human services",
-    "doe", "energy",
-    "dot", "transportation",
-    "usaid",
+    "va", "veterans affairs", "gsa", "general services",
+    "dhs", "homeland security", "hhs", "health and human services",
+    "doe", "energy", "dot", "transportation", "usaid",
     "census", "noaa", "reclamation"
 ]
 
-# High-priority keywords
 HIGH_PRIORITY_KEYWORDS = [
     "capital", "infrastructure", "construction",
-    "senior", "lead", "manager", "director",
-    "portfolio"
+    "senior", "lead", "manager", "director", "portfolio"
 ]
 
 def generate_job_hash(agency: str, title: str, location: str) -> str:
-    """Generate MD5 hash for deduplication."""
     content = f"{agency.lower()}{title.lower()}{location.lower()}"
     return hashlib.md5(content.encode()).hexdigest()
 
 def check_duplicate(job_hash: str) -> bool:
-    """Check if job already exists in database."""
-    query = {
-        "filter": {
-            "property": "Job Hash",
-            "rich_text": {"equals": job_hash}
-        }
-    }
-    
+    query = {"filter": {"property": "Job Hash", "rich_text": {"equals": job_hash}}}
     try:
         response = requests.post(
             f"https://api.notion.com/v1/databases/{NOTION_DB_ID}/query",
-            headers=HEADERS,
-            json=query,
-            timeout=10
+            headers=HEADERS, json=query, timeout=10
         )
         response.raise_for_status()
-        results = response.json().get("results", [])
-        return len(results) > 0
-    except Exception as e:
-        print(f"⚠️  Duplicate check failed: {e}")
+        return len(response.json().get("results", [])) > 0
+    except:
         return False
 
 def calculate_priority(job_data: Dict) -> str:
-    """Assign priority based on fit signals."""
     title = job_data.get("title", "").lower()
     agency = job_data.get("agency", "").lower()
-    salary_str = job_data.get("salary", "")
+    salary_str = str(job_data.get("salary", ""))
     
-    # High priority conditions
     high_signals = []
     
-    # Salary threshold (≥$120k or GS-14+)
     if "$" in salary_str:
         try:
-            # Extract first number after $ (rough parse)
-            amount = int(''.join(filter(str.isdigit, salary_str.split("$")[1])))
-            if amount >= 120000:
+            nums = ''.join(filter(str.isdigit, salary_str.replace(",", "")))
+            if nums and int(nums[:6]) >= 120000:
                 high_signals.append("salary")
         except:
             pass
@@ -91,30 +66,22 @@ def calculate_priority(job_data: Dict) -> str:
     if "gs-14" in salary_str.lower() or "gs-15" in salary_str.lower():
         high_signals.append("gs_level")
     
-    # Target agency
     if any(target in agency for target in TARGET_AGENCIES):
         high_signals.append("agency")
     
-    # Keywords in title
     if any(kw in title for kw in HIGH_PRIORITY_KEYWORDS):
         high_signals.append("keywords")
     
-    # Portfolio value (if mentioned)
-    if "$50m" in title or "$100m" in title or "million" in title:
-        high_signals.append("portfolio")
-    
-    # Decision logic
     if len(high_signals) >= 1:
         return "High"
     
-    # Medium priority: Federal + reasonable salary
     if "gs-12" in salary_str.lower() or "gs-13" in salary_str.lower():
         return "Medium"
     
     if "$" in salary_str:
         try:
-            amount = int(''.join(filter(str.isdigit, salary_str.split("$")[1])))
-            if 90000 <= amount < 120000:
+            nums = ''.join(filter(str.isdigit, salary_str.replace(",", "")))
+            if nums and 90000 <= int(nums[:6]) < 120000:
                 return "Medium"
         except:
             pass
@@ -122,7 +89,6 @@ def calculate_priority(job_data: Dict) -> str:
     return "Low"
 
 def classify_type(job_data: Dict) -> str:
-    """Classify opportunity type based on keywords."""
     title = job_data.get("title", "").lower()
     description = job_data.get("description", "").lower()
     combined = f"{title} {description}"
@@ -136,15 +102,13 @@ def classify_type(job_data: Dict) -> str:
     else:
         return "Federal General"
 
-def create_notion_page(job_data: Dict) -> bool:
-    """Create new page in Notion database."""
+def create_notion_page(job_data: Dict, debug: bool = False) -> bool:
     job_hash = generate_job_hash(
         job_data.get("agency", "Unknown"),
         job_data["title"],
         job_data.get("location", "Remote")
     )
     
-    # Check for duplicate
     if check_duplicate(job_hash):
         print(f"⏭️  Skipped (duplicate): {job_data['title']}")
         return False
@@ -152,63 +116,46 @@ def create_notion_page(job_data: Dict) -> bool:
     priority = calculate_priority(job_data)
     job_type = classify_type(job_data)
     
-    # Build notes field
+    # Build notes (limit to 2000 chars)
     notes_parts = []
     if job_data.get("agency"):
-        notes_parts.append(f"**Agency:** {job_data['agency']}")
+        notes_parts.append(f"Agency: {job_data['agency']}")
     if job_data.get("salary"):
-        notes_parts.append(f"**Salary:** {job_data['salary']}")
+        notes_parts.append(f"Salary: {job_data['salary']}")
     if job_data.get("posted_date"):
-        notes_parts.append(f"**Posted:** {job_data['posted_date']}")
+        notes_parts.append(f"Posted: {job_data['posted_date']}")
     if job_data.get("closing_date"):
-        notes_parts.append(f"**Closes:** {job_data['closing_date']}")
+        notes_parts.append(f"Closes: {job_data['closing_date']}")
     if job_data.get("description"):
-        # Truncate description to avoid hitting Notion's limits
-        desc = job_data['description'][:500]
+        desc = job_data['description'][:400]
         notes_parts.append(f"\n{desc}...")
     
-    notes_content = "\n".join(notes_parts) if notes_parts else "No additional details"
+    notes_content = "\n".join(notes_parts) if notes_parts else "No details"
+    if len(notes_content) > 1900:
+        notes_content = notes_content[:1900] + "..."
     
-    # Handle missing URL
     job_url = job_data.get("url")
-    if not job_url or job_url.strip() == "":
+    if not job_url or not job_url.strip():
         job_url = "https://placeholder.com"
     
-    # Construct payload - FIXED DATE FORMAT
     payload = {
         "parent": {"database_id": NOTION_DB_ID},
         "properties": {
-            "Opportunity": {
-                "title": [{"text": {"content": job_data["title"]}}]
-            },
-            "Source": {
-                "select": {"name": job_data.get("source", "Other")}
-            },
-            "userDefined:URL": {
-                "url": job_url
-            },
-            "Priority": {
-                "select": {"name": priority}
-            },
-            "Status": {
-                "status": {"name": "Monitoring"}
-            },
-            "Type": {
-                "select": {"name": job_type}
-            },
-            "Job Hash": {
-                "rich_text": [{"text": {"content": job_hash}}]
-            },
-            "Notes": {
-                "rich_text": [{"text": {"content": notes_content}}]
-            },
-            "Date Added": {
-                "date": {
-                    "start": datetime.now().strftime("%Y-%m-%d")
-                }
-            }
+            "Opportunity": {"title": [{"text": {"content": job_data["title"]}}]},
+            "Source": {"select": {"name": job_data.get("source", "Other")}},
+            "userDefined:URL": {"url": job_url},
+            "Priority": {"select": {"name": priority}},
+            "Status": {"status": {"name": "Monitoring"}},
+            "Type": {"select": {"name": job_type}},
+            "Job Hash": {"rich_text": [{"text": {"content": job_hash}}]},
+            "Notes": {"rich_text": [{"text": {"content": notes_content}}]},
+            "Date Added": {"date": {"start": datetime.now().strftime("%Y-%m-%d")}}
         }
     }
+    
+    if debug:
+        print(f"\n🔍 DEBUG - Payload for: {job_data['title']}")
+        print(json.dumps(payload, indent=2))
     
     try:
         response = requests.post(
@@ -217,38 +164,41 @@ def create_notion_page(job_data: Dict) -> bool:
             json=payload,
             timeout=10
         )
-        response.raise_for_status()
-        print(f"✅ Created: {job_data['title']} [Priority: {priority}]")
+        
+        # ALWAYS print full error on failure
+        if response.status_code != 200:
+            print(f"\n❌ Failed: {job_data['title']}")
+            print(f"   Status: {response.status_code}")
+            print(f"   Full API Response:")
+            try:
+                print(json.dumps(response.json(), indent=4))
+            except:
+                print(response.text)
+            return False
+        
+        print(f"✅ Created: {job_data['title']} [Priority: {priority}, Type: {job_type}]")
         return True
-    except requests.exceptions.HTTPError as e:
-        error_body = e.response.json() if e.response else {}
-        print(f"❌ Failed: {job_data['title']}")
-        print(f"   Status: {e.response.status_code}")
-        print(f"   Error: {error_body.get('message', 'Unknown error')}")
-        return False
+        
     except Exception as e:
-        print(f"❌ Failed: {job_data['title']} | Error: {e}")
+        print(f"❌ Exception for {job_data['title']}: {e}")
         return False
 
 def main():
-    """Main execution."""
     if not NOTION_TOKEN or not NOTION_DB_ID:
-        print("❌ Missing NOTION_TOKEN or NOTION_DB_ID environment variables")
+        print("❌ Missing NOTION_TOKEN or NOTION_DB_ID")
         sys.exit(1)
     
-    # Load jobs from file
     jobs_file = "jobs_output.json"
     
     if not os.path.exists(jobs_file):
         print(f"ℹ️  No jobs file found: {jobs_file}")
-        print("   This is normal if no jobs were found during scanning.")
         sys.exit(0)
     
     try:
         with open(jobs_file, 'r') as f:
             jobs = json.load(f)
     except json.JSONDecodeError as e:
-        print(f"❌ Invalid JSON in {jobs_file}: {e}")
+        print(f"❌ Invalid JSON: {e}")
         sys.exit(1)
     
     if not jobs:
@@ -257,39 +207,40 @@ def main():
     
     print(f"\n🔄 Processing {len(jobs)} opportunities...\n")
     
-    created_count = 0
-    skipped_count = 0
-    failed_count = 0
+    created = 0
+    skipped = 0
+    failed = 0
     
-    for job in jobs:
-        # Validate required fields
+    # Process first job with debug output
+    debug_first = True
+    
+    for idx, job in enumerate(jobs):
         if not job.get("title"):
-            print(f"⚠️  Skipped job with no title")
-            failed_count += 1
+            print("⚠️  Skipped job with no title")
+            failed += 1
             continue
         
-        result = create_notion_page(job)
+        result = create_notion_page(job, debug=debug_first and idx == 0)
+        
         if result:
-            created_count += 1
+            created += 1
         else:
-            # Check if it was a duplicate or a failure
             job_hash = generate_job_hash(
                 job.get("agency", "Unknown"),
                 job["title"],
                 job.get("location", "Remote")
             )
             if check_duplicate(job_hash):
-                skipped_count += 1
+                skipped += 1
             else:
-                failed_count += 1
+                failed += 1
     
     print(f"\n📊 Summary:")
-    print(f"   ✅ Created: {created_count}")
-    print(f"   ⏭️  Skipped (duplicates): {skipped_count}")
-    print(f"   ❌ Failed: {failed_count}")
+    print(f"   ✅ Created: {created}")
+    print(f"   ⏭️  Skipped (duplicates): {skipped}")
+    print(f"   ❌ Failed: {failed}")
     
-    # Exit with error code if all jobs failed
-    if failed_count > 0 and created_count == 0:
+    if failed > 0 and created == 0:
         sys.exit(1)
 
 if __name__ == "__main__":
