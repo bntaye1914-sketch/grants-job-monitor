@@ -143,7 +143,7 @@ def create_notion_page(job_data: Dict, debug: bool = False) -> bool:
         "properties": {
             "Opportunity": {"title": [{"text": {"content": job_data["title"]}}]},
             "Source": {"select": {"name": job_data.get("source", "Other")}},
-            "userDefined:URL": {"url": job_url},
+            "URL": {"url": job_url},
             "Priority": {"select": {"name": priority}},
             "Status": {"status": {"name": "Monitoring"}},
             "Type": {"select": {"name": job_type}},
