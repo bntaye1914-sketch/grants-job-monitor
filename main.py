@@ -115,10 +115,10 @@ def main():
         # Archive results
         save_job_archive(new_jobs)
 
-    # Save for Notion integration
-    with open('jobs_output.json', 'w') as f:
-                            json.dump(new_jobs, f, indent=2)
-        
+        # Save for Notion integration
+        with open('jobs_output.json', 'w') as f:
+            json.dump(new_jobs, f, indent=2)
+
     else:
                 print("✓ No new jobs this scan (all previously seen)")
     
