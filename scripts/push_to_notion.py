@@ -1,23 +1,28 @@
 #!/usr/bin/env python3
 """
 Job Monitor → Notion Integration
+UPGRADED TO API VERSION 2025-09-03 (Multi-source database support)
 """
-
 import os
 import sys
 import json
 import hashlib
 import requests
 from datetime import datetime
-from typing import Dict
+from typing import Dict, Optional
 
 NOTION_TOKEN = os.getenv("NOTION_TOKEN")
 NOTION_DB_ID = os.getenv("NOTION_DB_ID")
+
+# STEP 5: Upgraded to API version 2025-09-03
 HEADERS = {
     "Authorization": f"Bearer {NOTION_TOKEN}",
     "Content-Type": "application/json",
-    "Notion-Version": "2022-06-28"
+    "Notion-Version": "2025-09-03"
 }
+
+# Cache for data_source_id to avoid repeated API calls
+DATA_SOURCE_ID_CACHE = None
 
 TARGET_AGENCIES = [
     "dod", "defense", "army", "navy", "air force",
@@ -32,21 +37,71 @@ HIGH_PRIORITY_KEYWORDS = [
     "senior", "lead", "manager", "director", "portfolio"
 ]
 
+
+def get_data_source_id() -> Optional[str]:
+    """
+    STEP 1: Add discovery step to fetch and store the data_source_id
+    Retrieves the data_source_id from the database for use in subsequent API calls.
+    """
+    global DATA_SOURCE_ID_CACHE
+    
+    if DATA_SOURCE_ID_CACHE:
+        return DATA_SOURCE_ID_CACHE
+    
+    try:
+        # Get Database returns data_sources array in 2025-09-03
+        response = requests.get(
+            f"https://api.notion.com/v1/databases/{NOTION_DB_ID}",
+            headers=HEADERS,
+            timeout=10
+        )
+        response.raise_for_status()
+        
+        data = response.json()
+        data_sources = data.get("data_sources", [])
+        
+        if not data_sources:
+            print("❌ No data sources found in database")
+            return None
+        
+        # Use the first data source (most databases will have only one initially)
+        DATA_SOURCE_ID_CACHE = data_sources[0]["id"]
+        print(f"✓ Retrieved data_source_id: {DATA_SOURCE_ID_CACHE}")
+        return DATA_SOURCE_ID_CACHE
+        
+    except Exception as e:
+        print(f"❌ Failed to get data_source_id: {e}")
+        return None
+
+
 def generate_job_hash(agency: str, title: str, location: str) -> str:
     content = f"{agency.lower()}{title.lower()}{location.lower()}"
     return hashlib.md5(content.encode()).hexdigest()
 
+
 def check_duplicate(job_hash: str) -> bool:
+    """
+    STEP 3: Migrated to use data source query endpoint
+    """
+    data_source_id = get_data_source_id()
+    if not data_source_id:
+        return False
+    
     query = {"filter": {"property": "Job Hash", "rich_text": {"equals": job_hash}}}
+    
     try:
+        # STEP 3: Changed from /v1/databases/:database_id/query to /v1/data_sources/:data_source_id/query
         response = requests.post(
-            f"https://api.notion.com/v1/databases/{NOTION_DB_ID}/query",
-            headers=HEADERS, json=query, timeout=10
+            f"https://api.notion.com/v1/data_sources/{data_source_id}/query",
+            headers=HEADERS, 
+            json=query, 
+            timeout=10
         )
         response.raise_for_status()
         return len(response.json().get("results", [])) > 0
     except:
         return False
+
 
 def calculate_priority(job_data: Dict) -> str:
     title = job_data.get("title", "").lower()
@@ -88,6 +143,7 @@ def calculate_priority(job_data: Dict) -> str:
     
     return "Low"
 
+
 def classify_type(job_data: Dict) -> str:
     title = job_data.get("title", "").lower()
     description = job_data.get("description", "").lower()
@@ -102,7 +158,17 @@ def classify_type(job_data: Dict) -> str:
     else:
         return "Federal General"
 
+
 def create_notion_page(job_data: Dict, debug: bool = False) -> bool:
+    """
+    STEP 2: Updated to use data_source_id when creating pages
+    """
+    # Get data_source_id for this database
+    data_source_id = get_data_source_id()
+    if not data_source_id:
+        print("❌ Cannot create page: no data_source_id available")
+        return False
+    
     job_hash = generate_job_hash(
         job_data.get("agency", "Unknown"),
         job_data["title"],
@@ -138,8 +204,12 @@ def create_notion_page(job_data: Dict, debug: bool = False) -> bool:
     if not job_url or not job_url.strip():
         job_url = "https://placeholder.com"
     
+    # STEP 2: Changed parent from database_id to data_source_id
     payload = {
-        "parent": {"database_id": NOTION_DB_ID},
+        "parent": {
+            "type": "data_source_id",
+            "data_source_id": data_source_id
+        },
         "properties": {
             "Opportunity": {"title": [{"text": {"content": job_data["title"]}}]},
             "Source": {"select": {"name": job_data.get("source", "Other")}},
@@ -183,10 +253,16 @@ def create_notion_page(job_data: Dict, debug: bool = False) -> bool:
         print(f"❌ Exception for {job_data['title']}: {e}")
         return False
 
+
 def main():
     if not NOTION_TOKEN or not NOTION_DB_ID:
         print("❌ Missing NOTION_TOKEN or NOTION_DB_ID")
         sys.exit(1)
+    
+    print(f"\n🔄 Notion API Migration Status:")
+    print(f"   ✓ API Version: 2025-09-03 (multi-source database support)")
+    print(f"   ✓ Using data_source_id for page creation")
+    print(f"   ✓ Using data source query endpoint")
     
     jobs_file = "jobs_output.json"
     
@@ -242,6 +318,7 @@ def main():
     
     if failed > 0 and created == 0:
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()
