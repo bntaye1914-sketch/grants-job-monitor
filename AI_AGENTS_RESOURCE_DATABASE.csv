@@ -1,0 +1,21 @@
+Resource Name,Type,Difficulty,Use Case,URL,Status,Notes,Priority
+"Andrej Karpathy – Intro to LLMs",Video,Beginner,"Data",https://www.youtube.com/watch?v=zjkBMFhNj_g,Not Started,"Solid foundation for how LLMs work.",Medium
+"DeepLearning.AI – LangChain for LLM App Dev",Video,Beginner,"Jobs; Data",https://www.deeplearning.ai/short-courses/langchain-for-llm-application-development/,Not Started,"Good entry to agent tooling.",Medium
+"Prompt Engineering Guide (Video)",Video,Beginner,"Grants; Jobs",https://www.youtube.com/watch?v=0mQ3tCKdqJg,Not Started,"Practical prompting patterns.",Medium
+"Microsoft AutoGen Overview",Video,Intermediate,"Data; Interviews",https://www.youtube.com/watch?v=6b2JQdM1j8I,Not Started,"Multi-agent framework overview.",Medium
+"OpenAI Function Calling Deep Dive",Video,Intermediate,"Grants; Jobs",https://www.youtube.com/watch?v=QnV_5SDZrZc,Not Started,"Structured tool use.",Medium
+"LangChain",Repo,Beginner,"Jobs; Data",https://github.com/langchain-ai/langchain,Not Started,"General-purpose agent framework.",High
+"LlamaIndex",Repo,Beginner,"Grants; Data",https://github.com/run-llama/llama_index,Not Started,"Strong for RAG pipelines.",High
+"AutoGen",Repo,Intermediate,"Data; Interviews",https://github.com/microsoft/autogen,Not Started,"Multi-agent conversations.",Medium
+"CrewAI",Repo,Intermediate,"Jobs; Grants",https://github.com/joaomdmoura/crewai,Not Started,"Task routing and coordination.",Medium
+"Haystack",Repo,Intermediate,"Grants; Data",https://github.com/deepset-ai/haystack,Not Started,"RAG + pipelines for production.",Medium
+"Instructor",Repo,Intermediate,"Jobs; Data",https://github.com/jxnl/instructor,Not Started,"Structured outputs with Pydantic.",Medium
+"OpenAI Cookbook",Guide,Beginner,"Grants; Jobs",https://github.com/openai/openai-cookbook,Not Started,"Practical recipes.",High
+"LangChain Docs",Guide,Beginner,"Jobs; Data",https://python.langchain.com/docs/,Not Started,"Core patterns.",Medium
+"LlamaIndex Docs",Guide,Beginner,"Grants; Data",https://docs.llamaindex.ai/,Not Started,"RAG and indexing.",Medium
+"Anthropic Claude Docs",Guide,Beginner,"Interviews; Jobs",https://docs.anthropic.com/,Not Started,"Claude tooling and safety.",Medium
+"RAG Best Practices",Guide,Intermediate,"Grants; Data",https://www.pinecone.io/learn/retrieval-augmented-generation/,Not Started,"Retrieval quality checklist.",Medium
+"Designing Machine Learning Systems",Book,Intermediate,"Data",https://www.oreilly.com/library/view/designing-machine-learning/9781098107956/,Not Started,"Production ML systems.",Medium
+"Building LLM Applications",Book,Intermediate,"Data; Jobs",https://www.oreilly.com/library/view/building-llm-applications/9781098150952/,Not Started,"LLM app architecture.",Medium
+"Practical NLP",Book,Intermediate,"Grants; Data",https://www.oreilly.com/library/view/practical-natural-language/9781492054047/,Not Started,"NLP fundamentals.",Medium
+"Human-in-the-Loop ML",Book,Advanced,"Interviews",https://www.manning.com/books/human-in-the-loop-machine-learning,Not Started,"Feedback loops.",Low
